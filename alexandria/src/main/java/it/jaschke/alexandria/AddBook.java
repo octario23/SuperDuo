@@ -150,9 +150,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     @Override
     public void onLoadFinished(android.support.v4.content.Loader<Cursor> loader, Cursor data) {
         if (!data.moveToFirst()) {
-//            TextView tv = (TextView) getView().findViewById(R.id.recyclerview_forecast_empty);
             return;
-//                tv.setText(message);
         }
 
         String bookTitle = data.getString(data.getColumnIndex(AlexandriaContract.BookEntry.TITLE));
