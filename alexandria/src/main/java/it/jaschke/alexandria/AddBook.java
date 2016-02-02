@@ -8,6 +8,7 @@ import android.os.Bundle;
 import android.support.v4.app.Fragment;
 import android.support.v4.app.LoaderManager;
 import android.support.v4.content.CursorLoader;
+import android.support.v7.app.AppCompatActivity;
 import android.text.Editable;
 import android.text.TextWatcher;
 import android.util.Patterns;
@@ -26,8 +27,8 @@ import it.jaschke.alexandria.services.DownloadImage;
 
 
 public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<Cursor> {
-    private static final String TAG = "INTENT_TO_SCAN_ACTIVITY";
-    private EditText ean;
+    public static final String TAG = AddBook.class.getSimpleName();
+    public EditText ean;
     private final int LOADER_ID = 1;
     private View rootView;
     private final String EAN_CONTENT="eanContent";
@@ -69,21 +70,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
 
             @Override
             public void afterTextChanged(Editable s) {
-                String ean =s.toString();
-                //catch isbn10 numbers
-                if(ean.length()==10 && !ean.startsWith("978")){
-                    ean="978"+ean;
-                }
-                if(ean.length()<13){
-                    clearFields();
-                    return;
-                }
-                //Once we have an ISBN, start a book intent
-                Intent bookIntent = new Intent(getActivity(), BookService.class);
-                bookIntent.putExtra(BookService.EAN, ean);
-                bookIntent.setAction(BookService.FETCH_BOOK);
-                getActivity().startService(bookIntent);
-                AddBook.this.restartLoader();
+                addBook(s.toString());
             }
         });
 
@@ -99,9 +86,13 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
                 Context context = getActivity();
                 CharSequence text = "This button should let you scan a book for its barcode!";
                 int duration = Toast.LENGTH_SHORT;
-
-                Toast toast = Toast.makeText(context, text, duration);
-                toast.show();
+                    // launch barcode activity.
+                if(context instanceof AppCompatActivity) {
+                    Intent intent = new Intent(context, BarcodeCaptureActivity.class);
+                    intent.putExtra(BarcodeCaptureActivity.AutoFocus, false);
+                    intent.putExtra(BarcodeCaptureActivity.UseFlash, false);
+                    ((AppCompatActivity) context).startActivityForResult(intent, MainActivity.RC_BARCODE_CAPTURE);
+                }
 
             }
         });
@@ -132,7 +123,7 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
         return rootView;
     }
 
-    private void restartLoader(){
+    public void restartLoader(){
         getLoaderManager().restartLoader(LOADER_ID, null, this);
     }
 
@@ -203,5 +194,23 @@ public class AddBook extends Fragment implements LoaderManager.LoaderCallbacks<C
     public void onAttach(Activity activity) {
         super.onAttach(activity);
         activity.setTitle(R.string.scan);
+    }
+
+    private void addBook(String value){
+        String ean = value;
+        //catch isbn10 numbers
+        if(ean.length()==10 && !ean.startsWith("978")){
+            ean="978"+ean;
+        }
+        if(ean.length()<13){
+            clearFields();
+            return;
+        }
+        //Once we have an ISBN, start a book intent
+        Intent bookIntent = new Intent(getActivity(), BookService.class);
+        bookIntent.putExtra(BookService.EAN, ean);
+        bookIntent.setAction(BookService.FETCH_BOOK);
+        getActivity().startService(bookIntent);
+        AddBook.this.restartLoader();
     }
 }

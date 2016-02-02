@@ -10,6 +10,8 @@ import android.view.ViewGroup;
 
 public class About extends Fragment {
 
+    public static final String TAG = About.class.getSimpleName();
+
     public About(){
 
     }

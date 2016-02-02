@@ -12,16 +12,22 @@ import android.support.v4.content.LocalBroadcastManager;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBar;
 import android.support.v7.app.ActionBarActivity;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.widget.Toast;
 
+import com.google.android.gms.common.api.CommonStatusCodes;
+import com.google.android.gms.vision.barcode.Barcode;
+
 import it.jaschke.alexandria.api.Callback;
+import it.jaschke.alexandria.services.BookService;
 
 
 public class MainActivity extends ActionBarActivity implements NavigationDrawerFragment.NavigationDrawerCallbacks, Callback {
 
+    private static final String TAG = MainActivity.class.getSimpleName();
     /**
      * Fragment managing the behaviors, interactions and presentation of the navigation drawer.
      */
@@ -36,6 +42,9 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
 
     public static final String MESSAGE_EVENT = "MESSAGE_EVENT";
     public static final String MESSAGE_KEY = "MESSAGE_EXTRA";
+
+    public static final int RC_BARCODE_CAPTURE = 9001;
+    FragmentManager fm;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -58,6 +67,8 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         // Set up the drawer.
         navigationDrawerFragment.setUp(R.id.navigation_drawer,
                     (DrawerLayout) findViewById(R.id.drawer_layout));
+
+        fm = getSupportFragmentManager();
     }
 
     @Override
@@ -65,23 +76,27 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
 
         FragmentManager fragmentManager = getSupportFragmentManager();
         Fragment nextFragment;
+        String tag;
 
         switch (position){
             default:
             case 0:
                 nextFragment = new ListOfBooks();
+                tag = ListOfBooks.TAG;
                 break;
             case 1:
                 nextFragment = new AddBook();
+                tag = AddBook.TAG;
                 break;
             case 2:
                 nextFragment = new About();
+                tag = About.TAG;
                 break;
 
         }
 
         fragmentManager.beginTransaction()
-                .replace(R.id.container, nextFragment)
+                .replace(R.id.container, nextFragment,tag)
                 .addToBackStack((String) title)
                 .commit();
     }
@@ -178,5 +193,48 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         super.onBackPressed();
     }
 
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, Intent data) {
+        if (requestCode == RC_BARCODE_CAPTURE) {
+            if (resultCode == CommonStatusCodes.SUCCESS) {
+                if (data != null) {
+                    Barcode barcode = data.getParcelableExtra(BarcodeCaptureActivity.BarcodeObject);
+                    if(fm.findFragmentByTag(AddBook.TAG)!=null){
+                        AddBook f = (AddBook) fm.findFragmentByTag(AddBook.TAG);
+                        f.ean.setText(barcode.displayValue);
+                    }
+                    Log.d(TAG, "Barcode read: " + barcode.displayValue);
+                } else {
+                    Toast.makeText(this,R.string.barcode_failure,Toast.LENGTH_SHORT);
+                    Log.d(TAG, "No barcode captured, intent data is null");
+                }
+            } else {
+                Toast.makeText(this,R.string.barcode_error,Toast.LENGTH_SHORT);
+            }
+        }
+        else {
+            super.onActivityResult(requestCode, resultCode, data);
+        }
+    }
+
+    public void addBook(String value){
+        String ean = value;
+        //catch isbn10 numbers
+        if(ean.length()==10 && !ean.startsWith("978")){
+            ean="978"+ean;
+        }
+        if(ean.length()<13){
+            return;
+        }
+        //Once we have an ISBN, start a book intent
+        Intent bookIntent = new Intent(this, BookService.class);
+        bookIntent.putExtra(BookService.EAN, ean);
+        bookIntent.setAction(BookService.FETCH_BOOK);
+        this.startService(bookIntent);
+
+
+
+    }
 
 }
