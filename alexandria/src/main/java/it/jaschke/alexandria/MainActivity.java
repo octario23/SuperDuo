@@ -22,7 +22,6 @@ import com.google.android.gms.common.api.CommonStatusCodes;
 import com.google.android.gms.vision.barcode.Barcode;
 
 import it.jaschke.alexandria.api.Callback;
-import it.jaschke.alexandria.services.BookService;
 
 
 public class MainActivity extends ActionBarActivity implements NavigationDrawerFragment.NavigationDrawerCallbacks, Callback {
@@ -218,23 +217,5 @@ public class MainActivity extends ActionBarActivity implements NavigationDrawerF
         }
     }
 
-    public void addBook(String value){
-        String ean = value;
-        //catch isbn10 numbers
-        if(ean.length()==10 && !ean.startsWith("978")){
-            ean="978"+ean;
-        }
-        if(ean.length()<13){
-            return;
-        }
-        //Once we have an ISBN, start a book intent
-        Intent bookIntent = new Intent(this, BookService.class);
-        bookIntent.putExtra(BookService.EAN, ean);
-        bookIntent.setAction(BookService.FETCH_BOOK);
-        this.startService(bookIntent);
-
-
-
-    }
 
 }
